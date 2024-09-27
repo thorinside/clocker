@@ -38,6 +38,27 @@ mod.hook.register("system_post_startup", "clocker post startup", function()
 end)
 
 -- Hook into script initialization
+mod.hook.register("script_pre_init", "clocker script pre init", function()
+      params:add_group("CLOCKER", 2)
+      
+      params:add_trigger("clocker_start", "start")
+      params:set_action("clocker_start",
+        function()
+          local source = params:string("clock_source")
+          if source == "internal" then clock.internal.start()
+          elseif source == "link" then clock.link.start() end
+        end)
+
+      params:add_trigger("clocker_stop", "stop")
+      params:set_action("clocker_stop",
+        function()
+          local source = params:string("clock_source")
+          if source == "internal" then clock.internal.stop()
+          elseif source == "link" then clock.link.stop() end
+        end)
+end)
+  
+  
 mod.hook.register("script_post_init", "clocker script post init", function()
   local old_start = clock.transport.start
   local old_stop = clock.transport.stop
