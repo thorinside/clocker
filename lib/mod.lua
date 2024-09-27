@@ -40,22 +40,17 @@ end)
 -- Hook into script initialization
 mod.hook.register("script_pre_init", "clocker script pre init", function()
       params:add_group("CLOCKER", 2)
-      
-      params:add_trigger("clocker_start", "start")
-      params:set_action("clocker_start",
-        function()
+      params:add_binary("clocker_link_toggle", "RUN", "toggle", 0)
+      params:set_action("clocker_link_toggle",function(x)
           local source = params:string("clock_source")
-          if source == "internal" then clock.internal.start()
-          elseif source == "link" then clock.link.start() end
-        end)
-
-      params:add_trigger("clocker_stop", "stop")
-      params:set_action("clocker_stop",
-        function()
-          local source = params:string("clock_source")
-          if source == "internal" then clock.internal.stop()
-          elseif source == "link" then clock.link.stop() end
-        end)
+          if x == 0 then
+                if source == "internal" then clock.internal.stop()
+                elseif source == "link" then clock.link.stop() end
+          elseif x == 1 then
+                if source == "internal" then clock.internal.start()
+                elseif source == "link" then clock.link.start() end
+          end
+      end)
 end)
   
   
