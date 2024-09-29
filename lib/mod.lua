@@ -10,7 +10,7 @@ local state = {
   pending_midi_start = false,
 }
 
-local m = {}
+local clocker = {}
 
 local function send_midi_start()
   if params:string("clock_source") ~= "link" then return end
@@ -33,14 +33,9 @@ local function send_midi_stop()
   end
 end
 
--- Hook into system startup to initialize
-mod.hook.register("system_post_startup", "clocker post startup", function()
-end)
-
--- Hook into script initialization
-mod.hook.register("script_pre_init", "clocker script pre init", function()
-      params:add_group("CLOCKER", 2)
-      params:add_binary("clocker_link_toggle", "RUN", "toggle", 0)
+local function add_params()
+      params:add_separator("clocker")
+      params:add_binary("clocker_link_toggle", "Toggle Transport", "toggle", 0)
       params:set_action("clocker_link_toggle",function(x)
           local source = params:string("clock_source")
           if x == 0 then
@@ -51,30 +46,35 @@ mod.hook.register("script_pre_init", "clocker script pre init", function()
                 elseif source == "link" then clock.link.start() end
           end
       end)
+end
+
+-- Hook into script initialization
+mod.hook.register("script_pre_init", "clocker script pre init", function()
+  add_params()
 end)
-  
-  
+
 mod.hook.register("script_post_init", "clocker script post init", function()
   local old_start = clock.transport.start
   local old_stop = clock.transport.stop
   clock.transport.start = function()
-    m.on_start()
+    clocker.on_start()
     if old_start then old_start() end
   end
   clock.transport.stop = function()
-    m.on_stop()
+    clocker.on_stop()
     if old_stop then old_stop() end
   end
 end)
 
 -- Function to start the transport
-m.on_start = function()
+clocker.on_start = function()
+  params:set("clocker_link_toggle", 1)
   if not state.is_running then
-    clock.run(m.wait_for_quantum)
+    clock.run(clocker.wait_for_quantum)
   end
 end
 
-m.wait_for_quantum = function() 
+clocker.wait_for_quantum = function() 
   state.pending_midi_start = true -- Send MIDI Start at next bar
   clock.sync(norns.state.clock.link_quantum)
   state.is_running = true
@@ -83,27 +83,12 @@ m.wait_for_quantum = function()
 end
 
 -- Function to stop the transport
-m.on_stop = function()
+clocker.on_stop = function()
+  params:set("clocker_link_toggle", 0)
   if state.is_running then
     state.is_running = false
     send_midi_stop()
   end
 end
 
-m.init = function()
-end
-
-m.deinit = function()
-end
-
--- Register the MOD menu
--- mod.menu.register(mod.this_name, m)
-
--- API to expose the MOD's state if needed
-local api = {}
-
-api.get_state = function()
-  return state
-end
-
-return api
+return clocker
